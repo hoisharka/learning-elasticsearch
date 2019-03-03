@@ -1,0 +1,28 @@
+{
+    "record" : {
+	"properties" : {
+	    "team" : {
+		"type" : "keyword"
+	    },
+	    "name" : {
+		"type" : "keyword"
+	    },
+	    "points" : {
+		"type" : "long"
+	    },
+	    "rebounds" : {
+		"type" : "long"
+	    },
+	    "assists" : {
+		"type" : "long"
+	    },
+	    "blocks" : {
+		"type" : "long"
+	    },
+	    "submit_date" : {
+		"type" : "date",
+		"format" : "yyyy-MM-dd"
+	    }
+	}
+    }
+}

@@ -1,0 +1,781 @@
+* elk스택 강좌
+** 강좌 정보
+*** 인프런 강좌
+    https://www.inflearn.com/course/elk-%EC%8A%A4%ED%83%9D-%EB%8D%B0%EC%9D%B4%ED%84%B0-%EB%B6%84%EC%84%9D/
+*** 깃허브 
+    https://github.com/minsuk-heo/BigData
+** 설치 및 구동
+*** 자바 설치
+    [[자바 설치][자바 설치 가이드로 이동]]
+*** 설치
+    - https://www.elastic.co/downloads/elasticsearch 접속
+    - .deb파일로 다운
+    - sudo dpkg -i elasticsearch-6.6.0.deb
+*** 도커로 구동
+**** 도커 설치 가이드
+     [[도커 설치][도커 설치 가이드로 이동]]
+
+**** 엘라스틱 서치 도커 이미지
+     - centos:7 베이스 이미지
+     - 모든 이미지 및 태그 목록 
+       https://www.docker.elastic.co/
+     - 소스 코드 
+       https://github.com/elastic/elasticsearch-docker
+     - 오픈소스/프리 커머셜 기능/유료 커머셜 기능 모두 포함되어있음.
+**** pulling th image
+     #+begin_src bash
+       docker pull docker.elastic.co/elasticsearch/elasticsearch:6.6.1
+     #+end_src
+**** 커멘드라인 실행
+***** development mode
+      #+begin_src bash
+	docker run -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:6.6.1
+      #+end_src
+      
+**** 참고
+     https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html
+*** 구동
+    - service 사용 가능 설정
+      - sudo systemctl enable elasticsearch.service
+    - 시작 
+      - sudo service elasticsearch start
+    - 정지 
+      - sudo service elasticsearch stop
+    - 작동확인
+      - curl -XGET 'localhost:9200' # check if elasticsearch run
+      - 시작되었다는 내용
+	#+begin_src js
+	  {
+	    "name" : "24_vAsZ",
+	    "cluster_name" : "elasticsearch",
+	    "cluster_uuid" : "Yppqgzo0Q-ix2DZJA75n4Q",
+	    "version" : {
+	      "number" : "6.6.0",
+	      "build_flavor" : "default",
+	      "build_type" : "deb",
+	      "build_hash" : "a9861f4",
+	      "build_date" : "2019-01-24T11:27:09.439740Z",
+	      "build_snapshot" : false,
+	      "lucene_version" : "7.6.0",
+	      "minimum_wire_compatibility_version" : "5.6.0",
+	      "minimum_index_compatibility_version" : "5.0.0"
+	    },
+	    "tagline" : "You Know, for Search"
+	  }
+	#+end_src
+** 데이터 입력/조회/삭제
+*** 인덱스가 존재하는지 확인
+    - classes라는 인덱스가 있는지 확인하는 명령어 
+      - curl -XGET http://localhost:9200/classes?pretty
+    - classes라는 인덱스가 존재하지 않을 때 결과메시지
+      #+begin_src js
+	{
+	  "error": {
+	    "root_cause": [
+	      {
+		"type": "index_not_found_exception",
+		"reason": "no such index",
+		"resource.type": "index_or_alias",
+		"resource.id": "classes",
+		"index_uuid": "_na_",
+		"index": "classes"
+	      }
+	    ],
+	    "type": "index_not_found_exception",
+	    "reason": "no such index",
+	    "resource.type": "index_or_alias",
+	    "resource.id": "classes",
+	    "index_uuid": "_na_",
+	    "index": "classes"
+	  },
+	  "status": 404
+	}
+      #+end_src
+*** 인덱스 생성하기
+    - classes라는 인덱스 생성 
+      - curl -XPUT http://localhost:9200/classes
+    - 생성 결과메시지 
+      #+begin_src js
+	{
+	    "acknowledged": true,
+	    "shards_acknowledged": true,
+	    "index": "classes"
+	}
+      #+end_src
+    - 생성한 인덱스 조회
+      - curl -XGET http://localhost:9200/classes?pretty
+	#+begin_src js
+	{
+	  "classes" : {
+	    "aliases" : { },
+	    "mappings" : { },
+	    "settings" : {
+	      "index" : {
+		"creation_date" : "1550576763223",
+		"number_of_shards" : "5",
+		"number_of_replicas" : "1",
+		"uuid" : "qOn5ki-sRO-T5vGuRqe9wQ",
+		"version" : {
+		  "created" : "6060099"
+		},
+		"provided_name" : "classes"
+	      }
+	    }
+	  }
+	}
+
+      #+end_src
+*** 인덱스 삭제하기 
+    - classes 인덱스를 삭제하는 삭제 명령어 
+      - curl -XDELETE http://localhost:9200/classes
+    - 삭제 결과
+      #+begin_src js
+	{"acknowledged":true}
+      #+end_src
+
+*** 도큐먼트 생성, 커맨드라인에 데이터 입력
+    - curl -XPOST http://localhost:9200/classes/class/1/ -H 'Content-type:application/json' -d ' {"title":"Algorithm", "professor":"John"} '
+
+    - curl -XGET http://localhost:9200/classes/class/1/?pretty
+      #+begin_src js
+	{
+	  "_index" : "classes",
+	  "_type" : "class",
+	  "_id" : "1",
+	  "_version" : 3,
+	  "_seq_no" : 2,
+	  "_primary_term" : 1,
+	  "found" : true,
+	  "_source" : {
+	    "title" : "Algorithm",
+	    "professor" : "John"
+	  }
+	}
+
+      #+end_src
+
+*** 도큐먼트 생성, 파일 데이터
+    - curl -XPOST http://localhost:9200/classes/class/2/ -H 'Content-type:application/json' -d @oneclass.json
+    - curl -XGET http://localhost:9200/classes/class/2/?pretty
+
+** 데이터 업데이트 
+*** unit 필드 추가 
+    { "unit": 1 } 추가
+    - curl -XPOST http://localhost:9200/classes/class/1/_update?pretty  -H 'Content-type:application/json' -d ' { "doc" : {"unit" : 1} }'
+    - curl -XGET http://localhost:9200/classes/class/1/?pretty
+*** unit 필드 업데이트
+    { "unit": 2 } 업데이트
+    #+begin_src bash
+      curl -XPOST http://localhost:9200/classes/class/1/_update?pretty  -H 'Content-type:application/json' -d ' { "doc" : {"unit" : 2} }'
+      curl -XGET http://localhost:9200/classes/class/1/?pretty
+    #+end_src
+    - 
+    - 
+
+*** 스크립트를 통한 업데이트
+    unit 필드에 +5
+    #+begin_src bash
+      curl -XPOST http://localhost:9200/classes/class/1/_update?pretty -H 'Content-type:application/json' -d ' { "script" : "ctx._source.unit += 5" } '
+      curl -XGET http://localhost:9200/classes/class/1/?pretty
+    #+end_src
+
+** 벌크(Bulk). 여러개의 데이터를 한번에 삽입
+*** classes.json 데이터
+    https://raw.githubusercontent.com/minsuk-heo/BigData/master/ch01/classes.json
+    #+begin_src js
+      { "index" : { "_index" : "classes", "_type" : "class", "_id" : "1" } }
+      {"title" : "Machine Learning","Professor" : "Minsuk Heo","major" : "Computer Science","semester" : ["spring", "fall"],"student_count" : 100,"unit" : 3,"rating" : 5, "submit_date" : "2016-01-02", "school_location" : {"lat" : 36.00, "lon" : -120.00}}
+      { "index" : { "_index" : "classes", "_type" : "class", "_id" : "2" } }
+      {"title" : "Network","Professor" : "Minsuk Heo","major" : "Computer Science","semester" : ["fall"],"student_count" : 50,"unit" : 3,"rating" : 4, "submit_date" : "2016-02-02", "school_location" : {"lat" : 36.00, "lon" : -120.00}}
+      { "index" : { "_index" : "classes", "_type" : "class", "_id" : "3" } }
+      {"title" : "Operating System","Professor" : "Minsuk Heo","major" : "Computer Science","semester" : ["spring"],"student_count" : 50,"unit" : 3,"rating" : 4, "submit_date" : "2016-03-02", "school_location" : {"lat" : 36.00, "lon" : -120.00}}
+      { "index" : { "_index" : "classes", "_type" : "class", "_id" : "5" } }
+      {"title" : "Machine Learning","Professor" : "Tim Cook","major" : "Computer Science","semester" : ["spring"],"student_count" : 40,"unit" : 3,"rating" : 2, "submit_date" : "2016-04-02", "school_location" : {"lat" : 39.00, "lon" : -112.00}}
+      { "index" : { "_index" : "classes", "_type" : "class", "_id" : "6" } }
+      {"title" : "Network","Professor" : "Tim Cook","major" : "Computer Science","semester" : ["summer"],"student_count" : 30,"unit" : 3,"rating" : 2, "submit_date" : "2016-02-02", "school_location" : {"lat" : 36.00, "lon" : -120.00}}
+      { "index" : { "_index" : "classes", "_type" : "class", "_id" : "7" } }
+      {"title" : "Operating System","Professor" : "Jeniffer Anderson","major" : "Computer Science","semester" : ["winter"],"student_count" : 30,"unit" : 3,"rating" : 1, "submit_date" : "2016-11-02", "school_location" : {"lat" : 39.97, "lon" : -89.78}}
+      { "index" : { "_index" : "classes", "_type" : "class", "_id" : "8" } }
+      {"title" : "Algorithm","Professor" : "Tim Cook","major" : "Computer Science","semester" : ["fall"],"student_count" : 80,"unit" : 3,"rating" : 2, "submit_date" : "2016-10-22", "school_location" : {"lat" : 39.97, "lon" : -89.78}}
+      { "index" : { "_index" : "classes", "_type" : "class", "_id" : "9" } }
+      {"title" : "Data Structure","Professor" : "Tim Cook","major" : "Computer Science","semester" : ["winter"],"student_count" : 50,"unit" : 3,"rating" : 2, "submit_date" : "2016-07-22", "school_location" : {"lat" : 39.97, "lon" : -89.78}}
+      { "index" : { "_index" : "classes", "_type" : "class", "_id" : "10" } }
+      {"title" : "Computer Graphic","Professor" : "Jeniffer Anderson","major" : "Computer Science","semester" : ["spring"],"student_count" : 60,"unit" : 2,"rating" : 3, "submit_date" : "2016-11-12", "school_location" : {"lat" : 39.97, "lon" : -89.78}}
+      { "index" : { "_index" : "classes", "_type" : "class", "_id" : "11" } }
+      {"title" : "Music Fundamental","Professor" : "Jay Z","major" : "Music","semester" : ["fall"],"student_count" : 100,"unit" : 3,"rating" : 5, "submit_date" : "2016-05-22", "school_location" : {"lat" : 42.51, "lon" : -74.83}}
+      { "index" : { "_index" : "classes", "_type" : "class", "_id" : "12" } }
+      {"title" : "Vocal Techniques","Professor" : "Beyonce","major" : "Music","semester" : ["fall"],"student_count" : 30,"unit" : 3,"rating" : 5, "submit_date" : "2016-11-22", "school_location" : {"lat" : 42.51, "lon" : -74.83}}
+      { "index" : { "_index" : "classes", "_type" : "class", "_id" : "13" } }
+      {"title" : "Guitar Techiniques","Professor" : "Eric Clapton","major" : "Music","semester" : ["spring", "fall"],"student_count" : 20,"unit" : 2,"rating" : 4, "submit_date" : "2016-03-12", "school_location" : {"lat" : 42.51, "lon" : -74.83}}
+      { "index" : { "_index" : "classes", "_type" : "class", "_id" : "14" } }
+      {"title" : "Finance","Professor" : "Bill Gates","major" : "Accounting","semester" : ["winter"],"student_count" : 50,"unit" : 3,"rating" : 2, "submit_date" : "2016-01-12", "school_location" : {"lat" : 42.51, "lon" : -74.83}}
+      { "index" : { "_index" : "classes", "_type" : "class", "_id" : "15" } }
+      {"title" : "Marketing","Professor" : "Bill Gates","major" : "Accounting","semester" : ["spring"],"student_count" : 60,"unit" : 2,"rating" : 3, "submit_date" : "2016-01-22", "school_location" : {"lat" : 42.51, "lon" : -74.83}}
+      { "index" : { "_index" : "classes", "_type" : "class", "_id" : "16" } }
+      {"title" : "Accounting Information Systems","Professor" : "Tom Cruise","major" : "Accounting","semester" : ["fall"],"student_count" : 100,"unit" : 2,"rating" : 1, "submit_date" : "2016-11-12", "school_location" : {"lat" : 42.51, "lon" : -74.83}}
+      { "index" : { "_index" : "classes", "_type" : "class", "_id" : "17" } }
+      {"title" : "Individual Taxation","Professor" : "Tom Cruise","major" : "Accounting","semester" : ["fall"],"student_count" : 30,"unit" : 1,"rating" : 2, "submit_date" : "2016-08-02", "school_location" : {"lat" : 42.32, "lon" : -94.74}}
+      { "index" : { "_index" : "classes", "_type" : "class", "_id" : "18" } }
+      {"title" : "Auditing","Professor" : "Victoria Park","major" : "Accounting","semester" : ["spring", "fall"],"student_count" : 20,"unit" : 2,"rating" : 3, "submit_date" : "2016-09-13", "school_location" : {"lat" : 42.32, "lon" : -94.74}}
+      { "index" : { "_index" : "classes", "_type" : "class", "_id" : "19" } }
+      {"title" : "Cell Biology","Professor" : "Anjella Kim","major" : "Medical","semester" : ["fall"],"student_count" : 40,"unit" : 5,"rating" : 5, "submit_date" : "2016-02-22", "school_location" : {"lat" : 42.32, "lon" : -94.74}}
+      { "index" : { "_index" : "classes", "_type" : "class", "_id" : "20" } }
+      {"title" : "Physiology","Professor" : "Jack Berk","major" : "Medical","semester" : ["summer"],"student_count" : 30,"unit" : 5,"rating" : 4, "submit_date" : "2016-11-12", "school_location" : {"lat" : 32.69, "lon" : -99.44}}
+      { "index" : { "_index" : "classes", "_type" : "class", "_id" : "21" } }
+      {"title" : "Neuroscience","Professor" : "Jihee Yang","major" : "Medical","semester" : ["spring", "fall"],"student_count" : 20,"unit" : 5,"rating" : 4, "submit_date" : "2016-06-03", "school_location" : {"lat" : 32.69, "lon" : -99.44}}
+      { "index" : { "_index" : "classes", "_type" : "class", "_id" : "22" } }
+      {"title" : "Immunology","Professor" : "Meredith Lee","major" : "Medical","semester" : ["winter"],"student_count" : 30,"unit" : 3,"rating" : 2, "submit_date" : "2016-06-21", "school_location" : {"lat" : 32.69, "lon" : -99.44}}
+      { "index" : { "_index" : "classes", "_type" : "class", "_id" : "23" } }
+      {"title" : "Genetics","Professor" : "David Pollack","major" : "Medical","semester" : ["spring"],"student_count" : 20,"unit" : 3,"rating" : 3, "submit_date" : "2016-06-30", "school_location" : {"lat" : 28.22, "lon" : -81.87}}
+      { "index" : { "_index" : "classes", "_type" : "class", "_id" : "24" } }
+      {"title" : "Biochemistry","Professor" : "John Miller","major" : "Medical","semester" : ["fall"],"student_count" : 30,"unit" : 3,"rating" : 4, "submit_date" : "2016-01-11", "school_location" : {"lat" : 28.22, "lon" : -81.87}}
+      { "index" : { "_index" : "classes", "_type" : "class", "_id" : "25" } }
+      {"title" : "Anatomy","Professor" : "Tom Johnson","major" : "Medical","semester" : ["fall"],"student_count" : 30,"unit" : 5,"rating" : 3, "submit_date" : "2016-11-12", "school_location" : {"lat" : 28.22, "lon" : -81.87}}
+
+    #+end_src
+*** 삽입
+    #+begin_src bash
+      curl -XPOST http://localhost:9200/_bulk?pretty -H 'Content-type:application/json' --data-binary @classes.json
+    #+end_src
+** 맵핑
+   관계형 DB에서 스키마와 비슷한 개념. 데이터 분석에 필요.
+*** 실습 데이터
+    https://raw.githubusercontent.com/minsuk-heo/BigData/master/ch02/classesRating_mapping.json
+    #+begin_src js
+      {
+	  "class" : {
+	      "properties" : {
+		  "title" : {
+		      "type" : "string"
+		  },
+		  "professor" : {
+		      "type" : "string"
+		  },
+		  "major" : {
+		      "type" : "string"
+		  },
+		  "semester" : {
+		      "type" : "string"
+		  },
+		  "student_count" : {
+		      "type" : "integer"
+		  },
+		  "unit" : {
+		      "type" : "integer"
+		  },
+		  "rating" : {
+		      "type" : "integer"
+		  },
+		  "submit_date" : {
+		      "type" : "date",
+		      "format" : "yyyy-MM-dd"
+		  },
+		  "school_location" : {
+		      "type" : "geo_point"
+		  }
+	      }
+	  }
+      }
+    #+end_src
+*** string type 관련 에러 
+    - 에러메시지
+      #+begin_src js
+	{
+	  "error": {
+	    "root_cause": [
+	      {
+		"type": "mapper_parsing_exception",
+		"reason": "No handler for type [string] declared on field [title]"
+	      }
+	    ],
+	    "type": "mapper_parsing_exception",
+	    "reason": "No handler for type [string] declared on field [title]"
+	  },
+	  "status": 400
+	}
+      #+end_src
+    - unix계열에서는 string을 text로 변환해야 한다.
+    - shell에서 한번에 string -> text 변경하기
+      #+begin_src bash
+	sed "s/string/text/" classesRating_mapping.json | tee classesRating_mapping.json
+      #+end_src
+*** 맵핑 제거
+    맵핑이 잘못 들어간 거 같아서 지우고 다시 넗으려고 함.
+    그런데 아직 지원하지 않는 것 같음.
+    https://www.elastic.co/guide/en/elasticsearch/reference/6.4/indices-delete-mapping.html
+    
+    인덱스를 지움.
+    인덱스 지우고 다시 생성한 뒤 맵핑 추가해주니 맵핑이 잘 들어감.
+*** 맵핑 추가
+    - curl -XPUT http://localhost:9200/classes/class/_mapping -H 'Content-type:application/json' -d @classesRating_mapping.json
+** 검색
+*** 검색 데이터
+    https://raw.githubusercontent.com/minsuk-heo/BigData/master/ch03/simple_basketball.json
+    #+begin_src js
+      { "index" : { "_index" : "basketball", "_type" : "record", "_id" : "1" } }
+      {"team" : "Chicago Bulls","name" : "Michael Jordan", "points" : 30,"rebounds" : 3,"assists" : 4, "submit_date" : "1996-10-11"}
+      { "index" : { "_index" : "basketball", "_type" : "record", "_id" : "2" } }
+      {"team" : "Chicago Bulls","name" : "Michael Jordan","points" : 20,"rebounds" : 5,"assists" : 8, "submit_date" : "1996-10-11"}
+    #+end_src
+    - 2개의 데이터 추가 
+    
+    - 벌크로 추가 
+      #+begin_src bash
+	curl -XPOST http://localhost:9200/_bulk -H 'Content-type:application/json' --data-binary @simple_basketball.json
+      #+end_src
+*** 전부 조회
+    #+begin_src bash
+      curl -XGET localhost:9200/basketball/record/_search?pretty
+    #+end_src
+*** uri 옵션
+**** points가 30인 도큐먼트만 검색
+     #+begin_src bash
+       curl -XGET 'localhost:9200/basketball/record/_search?q=points:30&pretty'
+     #+end_src
+*** request body
+**** points가 30인 도큐먼트만 검색
+     #+begin_src bash
+       curl -XGET 'localhost:9200/basketball/record/_search?pretty' -H 'Content-type:application/json' -d '
+       {
+	   "query":{
+	       "term":{"points":30}
+	   }
+       }'
+     #+end_src
+**** request body의 다양한 옵션
+     https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-body.html
+
+** 메트릭 어그리게이션(Metric Aggregation)
+   데이터를 산술적으로 조합
+**** points 평균 구하는 어그리게이션
+     - avg_points_aggs.json
+       #+begin_src js
+	 {
+	   "size": 0,
+	   "aggs": {
+	     "avg_score": {
+	       "avg": {
+		 "field": "points"
+	       }
+	     }
+	   }
+	 }
+       #+end_src
+
+     - points 평균 조회
+       #+begin_src bash
+	 curl -XGET 'localhost:9200/_search?pretty' -H 'Content-type:application/json' --data-binary @avg_points_aggs.json
+       #+end_src
+**** points 최대값 구하는 어그리게이션
+     - max_points_aggs.json
+       #+begin_src js
+	 {
+	   "size": 0,
+	   "aggs": {
+	     "max_score": {
+	       "max": {
+		 "field": "points"
+	       }
+	     }
+	   }
+	 }
+       #+end_src
+
+     - points 최대값 조회
+       #+begin_src bash
+	 curl -XGET 'localhost:9200/_search?pretty' -H 'Content-type:application/json' --data-binary @max_points_aggs.json
+       #+end_src
+**** points 합계 구하는 어그리게이션
+     - sum_points_aggs.json
+       #+begin_src js
+	 {
+	   "size": 0,
+	   "aggs": {
+	     "sum_score": {
+	       "sum": {
+		 "field": "points"
+	       }
+	     }
+	   }
+	 }
+       #+end_src
+
+     - points 합계 조회
+       #+begin_src bash
+	 curl -XGET 'localhost:9200/_search?pretty' -H 'Content-type:application/json' --data-binary @sum_points_aggs.json
+       #+end_src
+**** stats(count, min, max, avg, sum)  points 
+     - stats_points_aggs.json
+       #+begin_src js
+	 {
+	   "size": 0,
+	   "aggs": {
+	     "stats_score": {
+	       "stats": {
+		 "field": "points"
+	       }
+	     }
+	   }
+	 }
+       #+end_src
+
+     - points stats 조회
+       #+begin_src bash
+	 curl -XGET 'localhost:9200/_search?pretty' -H 'Content-type:application/json' --data-binary @stats_points_aggs.json
+       #+end_src
+** 버켓 어그리게이션
+   데이터를 그룹화 
+*** 사전 데이터 삽입
+    https://raw.githubusercontent.com/minsuk-heo/BigData/master/ch03/bulk_basketball.json
+
+    - mapping 데이터
+      basketball_mapping.json
+      #+begin_src js
+	{
+	    "record" : {
+		"properties" : {
+		    "team" : {
+			"type" : "string",
+			"fielddata" : true
+		    },
+		    "name" : {
+			"type" : "string",
+			"fielddata" : true
+		    },
+		    "points" : {
+			"type" : "long"
+		    },
+		    "rebounds" : {
+			"type" : "long"
+		    },
+		    "assists" : {
+			"type" : "long"
+		    },
+		    "blocks" : {
+			"type" : "long"
+		    },
+		    "submit_date" : {
+			"type" : "date",
+			"format" : "yyyy-MM-dd"
+		    }
+		}
+	    }
+	}
+      #+end_src
+    - 농구 팀 bulk 데이터
+      twoteam_basketball.json
+      #+begin_src js
+	{ "index" : { "_index" : "basketball", "_type" : "record", "_id" : "1" } }
+	{"team" : "Chicago","name" : "Michael Jordan", "points" : 30,"rebounds" : 3,"assists" : 4, "blocks" : 3, "submit_date" : "1996-10-11"}
+	{ "index" : { "_index" : "basketball", "_type" : "record", "_id" : "2" } }
+	{"team" : "Chicago","name" : "Michael Jordan","points" : 20,"rebounds" : 5,"assists" : 8, "blocks" : 4, "submit_date" : "1996-10-13"}
+	{ "index" : { "_index" : "basketball", "_type" : "record", "_id" : "3" } }
+	{"team" : "LA","name" : "Kobe Bryant","points" : 30,"rebounds" : 2,"assists" : 8, "blocks" : 5, "submit_date" : "2014-10-13"}
+	{ "index" : { "_index" : "basketball", "_type" : "record", "_id" : "4" } }
+	{"team" : "LA","name" : "Kobe Bryant","points" : 40,"rebounds" : 4,"assists" : 8, "blocks" : 6, "submit_date" : "2014-11-13"}
+      #+end_src
+    - 맵핑 및 데이터 추가
+      #+begin_src bash
+        
+	# 맵핑 데이터 string -> text
+	sed "s/string/text/" basketball_mapping.json | tee basketball_mapping.json
+	
+	# 맵핑 추가 
+	curl -XPUT 'localhost:9200/basketball/record/_mapping/?pretty' -H 'Content-type:application/json' -d @basketball_mapping.json
+
+	# 농구선수 데이터 추가 
+	curl -XPOST 'localhost:9200/basketball/_bulk/?pretty' -H 'Content-type:application/json' --data-binary @bulk_basketball.json
+	
+	# 농구팀 데이터 추가
+	curl -XPOST 'localhost:9200/basketball/_bulk/?pretty' -H 'Content-type:application/json' --data-binary @twoteam_basketball.json
+      #+end_src
+*** 팀 어그리게이션
+    - terms_aggrs.json
+      https://raw.githubusercontent.com/minsuk-heo/BigData/master/ch04/terms_aggs.json
+      #+begin_src js
+	{
+	    "size" : 0,
+	    "aggs" : {
+		"players" : {
+		    "terms" : {
+			"field" : "team"
+		    }
+		}
+	    }
+	}
+      #+end_src
+    - 팀 어그리게이션 조회
+      #+begin_src bash
+	curl -XGET localhost:9200/_search?pretty -H 'Content-type:application/json' --data-binary @terms_aggs.json
+      #+end_src
+*** stats by team
+    - stats_by_team.sjon
+      https://raw.githubusercontent.com/minsuk-heo/BigData/master/ch04/stats_by_team.json
+      #+begin_src js
+	{
+	    "size" : 0,
+	    "aggs" : {
+		"team_stats" : {
+		    "terms" : {
+			"field" : "team"
+		    },
+		    "aggs" : {
+			"stats_score" : {
+			    "stats" : {
+				"field" : "points"
+			    }
+			}
+		    }
+		}
+	    }
+	}
+      #+end_src
+    - stats by team 어그리게이션 조회
+      #+begin_src bash
+	curl -XGET 'localhost:9200/_search?pretty' -H 'Content-type:application/json' -d @stats_by_team.json
+      #+end_src
+
+** 키바나 설치
+*** 다운로드 페이지
+    https://www.elastic.co/downloads/kibana
+*** 다운로드 및 설치
+    #+begin_src bash
+      wget https://artifacts.elastic.co/downloads/kibana/kibana-6.6.1-amd64.deb
+      sudo dpkg -i kibana-6.6.1-amd64.deb
+    #+end_src
+*** config
+    /etc/kibana/kibana.yml 파일에서 
+    ~elasticsearch.hosts: ["http://localhost:9200"]~ 주석 처리되어있는 걸 푼다.
+*** 구동
+    - 프로그램 구동
+    #+begin_src bash
+      sudo /usr/share/kibana/bin/kibana
+    #+end_src
+    - localhost:5601로 접속해서 구동 확인 
+** 키바나 매니지먼트
+*** 실습 데이터 다시 세팅 
+    #+begin_src bash
+      # basketball 인덱스 제거 
+      curl -XDELETE 'localhost:9200/basketball'
+
+      # 맵핑 추가 
+      curl -XPUT 'localhost:9200/basketball/record/_mapping/?pretty' -H 'Content-type:application/json' -d @basketball_mapping.json
+
+      # 농구선수 데이터 추가 
+      curl -XPOST 'localhost:9200/basketball/_bulk/?pretty' -H 'Content-type:application/json' --data-binary @bulk_basketball.json
+
+      # 농구팀 데이터 추가
+      curl -XPOST 'localhost:9200/basketball/_bulk/?pretty' -H 'Content-type:application/json' --data-binary @twoteam_basketball.json
+    #+end_src
+*** 인덱스 패턴 설정   
+    - localhost:5601 접속
+    - Management 메뉴 선택
+    - index pattern 선택
+    - index pattern에 basketball 입력
+    - time 필드로 submit_date 선택
+** 키바나 디스커버
+   - discover 메뉴 선택
+   - 상단 필터에 Last 15 minutes를 5개월로 설정. 주어진 데이터의 날짜
+     기준인 submit_date가 2016년 대로 되어있어 그때의 시간까지
+     포함하는 범위로 잡아주어야 함.
+   - 날짜 범위 지정하는 방법
+     - quick(지정된 카테고리 범위)
+     - relation(현재를 기준으로범위지정)
+     - absolute(from to 지정)
+   - 날짜 범위 안의 데이터에 대해 그래프와 함께 하단에 데이터 목록이 나타남
+   - 데이터 목록에서 필요한 데이터를 필터링 가능
+** 키바나 비주얼라이즈
+*** 막대그래프 이슈
+    - y축을 points의 평균으로 x축을 terms 어그리게이션으로 name을
+      지정해서 나타내면 stephen curry 라는 선수 이름이 분할되어서
+      x축에 나타나는데, 왜 이럼 필드가 단어별로 나타나는 건지
+      궁금하다.
+
+    - 맵핑을 다음과 같이 수정하니 이름이 분리되지 않고 그래프로 표시되었다.
+      #+begin_src js
+	"name" : {
+	    "type" : "keyword"
+	},
+      #+end_src
+    - 이미 들어가 있던 맵핑과 충돌이 나서 수정된 맵핑이 바로 적용되지
+      않았다. 인덱스를 삭제하고 다시 추가해서 맵핑했다. 원래 맵핑을
+      바꾸기가 쉽지 않은 건지 궁금하다.
+
+*** 타일맵, 지도에 표시
+**** 데이터 세팅
+     #+begin_src bash
+       # classes 인덱스 삭제하고 다시 추가
+       curl -XDELETE 'localhost:9200/classes'
+
+       curl -XPUT 'localhost:9200/classes'
+
+       # mapping
+       curl -XPUT 'localhost:9200/classes/class/_mapping?pretty' -H 'Content-type:application/json' -d @classesRating_mapping.json
+
+       # bulk
+       curl -XPOST 'localhost:9200/classes/_bulk?pretty' -H 'Content-type:application/json' --data-binary @classes.json
+
+     #+end_src
+**** 키바나
+     - 매니지먼트 메뉴 이동
+     - index pattern 추가
+     - 타임 필드 설정
+     - 비주얼라이즈 메뉴 이동
+     - 비주얼라이즈 추가, Coordinate Map 유형 선택
+     - 데이터 설정
+       - metrics: value
+       - buckets: geo coordinates
+	 - aggregation: geohash
+	 - field: school_location
+    		
+** 키바나 대시보드
+   생성해 놓은 비주얼라이즈 요소들을 위젯 형태로 배치해 볼 수 있다.
+
+** 로그스태시
+   - 데이터를 원하는 형태의 포멧으로 바꿔줌.
+   - 변환된 데이터를 엘라스틱서치에 넣어주는 방식
+*** 설치
+**** 다운로드 url
+     - https://www.elastic.co/kr/downloads/logstash
+     - https://artifacts.elastic.co/downloads/logstash/logstash-6.6.1.deb
+**** 설치 명렁어
+     #+begin_src bash
+       wget https://artifacts.elastic.co/downloads/logstash/logstash-6.6.1.deb
+       sudo dpkg -i logstash-6.6.1.deb
+     #+end_src
+** 실전 인구분석
+*** 데이터 다운로드
+**** 데이터 카탈로그 
+     - https://catalog.data.gov/dataset
+     - population by country 검색해서 csv파일 다운로드
+**** wget으로 다운로드  
+     #+begin_src bash
+       wget https://openei.org/doe-opendata/dataset/a7fea769-691d-4536-8ed3-471e993a2445/resource/86c50aa8-e40f-4859-b52e-29bb10166456/download/populationbycountry19802010millions.csv
+     #+end_src
+*** 파일 편집
+    - NA(not appplicable) 또는 '--'가 들어가 있는 데이터는 제외해야 한다.
+    - 이런 데이터를 쉽게 필터링할 방법은 나중에 생각해보고 일단 강사님이 편집해 놓은 파일을 가져다 쓴다
+      #+begin_src bash
+      wget https://raw.githubusercontent.com/minsuk-heo/BigData/master/ch06/populationbycountry19802010millions.csv
+      #+end_src
+*** 엘라스틱서치 & 키바나 구동 확인
+    #+begin_src bash
+      ps -ef | grep kibana
+      ps -ef | grep elasticsearch
+    #+end_src
+*** logstash.conf
+    사용할 logstash.conf 파일 다운로드 
+    #+begin_src bash
+      wget https://raw.githubusercontent.com/minsuk-heo/BigData/master/ch06/logstash.conf
+    #+end_src
+**** 설정 항목
+***** path
+      - 데이터 파일 경로
+***** start_position
+      - 시작 위치. 기본은 end라고 하는데, 아마 평소에는 스트리밍으로
+	데이터가 하나씩 들어오기 때문. 실습에선 파일로부터 받기
+	때문에 beginning으로 설정.
+***** sincedb_path
+      - /dev/null 로 설정하면 데이터를 1번 이상 넣을 수 있다.
+***** filter     
+      - csv 파일 형식
+      - separator는  콤마로 구분
+      - colums은 데이터 필드 항목
+      - mutate 설정을 통해 각 숫자필드에 해당하는 데이터를 float로 변경한다고 명시함.
+***** output
+      - elasticsearch로 아웃풋을 전달함.
+*** logstash 구동
+    - conf 파일을 실행해서 데이터를 elasticsearch에 삽입
+    #+begin_src bash
+      # 구동 전 기존 conf 파일로 구동했던 logstash를 종료
+      ps aux | grep "[l]ogstash" | awk '{print $2}' | xargs sudo kill -9
+      # 새 conf파일로 구동
+      sudo /usr/share/logstash/bin/logstash -f logstash.conf
+    #+end_src
+    - 삽입한 데이터를 이전 실습 때 다루었던 데이터처럼 분석할 수 있음.
+
+** 실전 주식분석
+*** 강사가 참고한 사이트
+    https://blog.webkid.io/visualize-datasets-with-elk/
+*** yahoo finance 에서 페이스북 주식 정보 다운 받기
+    - https://finance.yahoo.com/ 로 이동
+    - FB 검색해서 지난 5년동안 데이터 조회 후 다운로드
+      #+begin_src bash
+	wget https://query1.finance.yahoo.com/v7/finance/download/FB?period1=1393686000&period2=1551452400&interval=1d&events=history&crumb=VZlvhGtxL2v
+      #+end_src
+*** logstash_stock.conf
+    #+begin_src bash
+      wget https://raw.githubusercontent.com/minsuk-heo/BigData/master/ch06/logstash_stock.conf
+    #+end_src
+    
+    - 내용을 나에게 알맞게 수정. 
+    - path를 내 환경에 맞게 설정함.
+    - data column의 순서가 예전과 다른 것으로 보임. Adj Close와 Volume의 순서를 바꿔줌.
+    #+begin_src js
+      input {
+	file {
+	  path => "/home/thkim/learning-elasticsearch/FB.csv"
+	  start_position => "beginning"
+	  sincedb_path => "/dev/null"    
+	}
+      }
+      filter {
+	csv {
+	    separator => ","
+	    columns => ["Date","Open","High","Low","Close","Adj Close","Volume"]
+	}
+	mutate {convert => ["Open", "float"]}
+	mutate {convert => ["High", "float"]}
+	mutate {convert => ["Low", "float"]}
+	mutate {convert => ["Close", "float"]}
+      }
+      output {  
+	  elasticsearch {
+	      hosts => "localhost"
+	      index => "stock"
+	  }
+	  stdout {}
+      }
+
+    #+end_src
+*** logstash 구동
+    #+begin_src bash
+      sudo /usr/share/logstash/bin/logstash -f 'logstash_stock.conf'
+    #+end_src
+
+** ELK 클라으드 로그분석 시스템 아키텍쳐
+   - 웹서버, DB서버에 filebeat 설치
+   - 로그 파일에 변화가 생기면 filebeat에서 logstash로 데이터 전송
+   - logstash는 elasticsearch로 데이터를 저장
+   - kibana로 데이터 분석
+   - curator는 저장된 데이터의 유효기간 등을 관리
+   - 오래된 데이터를 amazon s3에 백업
+** COMMENT filebeat로 분산 서버 로그 ELK 스택에 전달하기
+** COMMENT 큐레이터로 ELK스택 디스크 공간 자동으로 관리하기
+** COMMENT S3를 활용한 ELK스택 로그 백업 및 복원
+** 고찰
+*** -d 와 --data-binary 옵션
+    어떨 때 -d를 쓰고 어떨 때 --data-binary를 쓰는가?
+    처음에는 직접 json 문자열을 curl 명령문에 붙여서 호출할 땐 -d이고 파일로 참조할 땐 --data-binary를 쓰는 건 줄 알았다.
+    
+    그런데 mapping 데이터를 넣을 땐 파일로 넣었는데도 -d 로 넣었다.
+
+    이제 다시 두 옵션의 차이를 구분해보면 
+    -d는 단일 json형식, 즉 '{'로 시작해서 '}'로 끝나야 하는 형식에 사용되는 것 같고
+    --data-binary는 여러개의 json 데이터가 개행 문자로 구분된 형태도 허용하는 듯 하다.
+
+*** 필드명이 대문자이면 추가적인 필드가 자동으로 들어간다?
+    - clasess인덱스에 추가된 필드를 보면 별도로 맵핑이나 추가 필드로 넣지 않았는데 자동으로 들어간 필드가 몇개 있다.
+    - 추가된 항목
+      - Professor.keyword
+      - professor
+    - 실제로 mapping이나 clssess데이터에 명시된 필드이름은 Professor하나 뿐인데 두 개가 추가로 들어가 있다.
+    - basketball의 name 필드도 Professor와 동일한 맵핑을 주었는데 name은 추가된 필드가 없다.
+    - name과 Professor의 차이는 앞글자가 대문자이냐 소문자이냐의 차이밖에 없다.
+    - 그러면 앞글자가 대문자인 필드는 저렇게 추가 필드가 생기는 것일까?
+    
+    - 일단 추가된 2개중에 professor는 대문자가 포함된 필드를 자동으로 소문자화 하는 게 맞는 듯 하다.
+      - https://discuss.elastic.co/t/column-name-case-changes-from-camel-case-to-lowercase-when-we-import-data-to-elastic-from-sql-db/38368/2
+      - 기본으로 analyze 하는데 소문자화가 필요한 듯 하다. analyze를 하지 않는다면 자동으로 생성되지 않을 것이다.
+      - 이 부분은 맵핑에 명시해 놓아야 할거 같은데 아직 analyze에 대한 설정 방법을 잘 모르겠다.
+
