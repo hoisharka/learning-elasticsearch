@@ -743,7 +743,7 @@
       sudo /usr/share/logstash/bin/logstash -f 'logstash_stock.conf'
     #+end_src
 
-** ELK 클라으드 로그분석 시스템 아키텍쳐
+** ELK 클라우드 로그분석 시스템 아키텍쳐
    - 웹서버, DB서버에 filebeat 설치
    - 로그 파일에 변화가 생기면 filebeat에서 logstash로 데이터 전송
    - logstash는 elasticsearch로 데이터를 저장
